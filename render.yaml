@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: amit-digital-twin
+    runtime: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false        # set manually in Render dashboard
+      - key: PINECONE_API_KEY
+        sync: false
+      - key: PINECONE_INDEX
+        value: amit-twin
+      - key: PINECONE_REGION
+        value: us-east-1
+      - key: INGEST_SECRET
+        sync: false
