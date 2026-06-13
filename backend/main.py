@@ -24,6 +24,36 @@ load_dotenv()
 
 from backend import rag  # noqa: E402 — import after env loaded
 
+# ── Supabase logging (optional — disabled if env vars not set) ────────────────
+import json as _json
+import requests as _requests
+
+def _log_conversation(user_message: str, bot_reply: str, sources: list[str], response_ms: int):
+    """Write one conversation turn to Supabase REST API. Silently swallows all errors."""
+    try:
+        url = os.environ.get("SUPABASE_URL")
+        key = os.environ.get("SUPABASE_KEY")
+        if not url or not key:
+            return
+        _requests.post(
+            f"{url}/rest/v1/conversations",
+            headers={
+                "apikey": key,
+                "Authorization": f"Bearer {key}",
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal",
+            },
+            data=_json.dumps({
+                "user_message": user_message,
+                "bot_reply":    bot_reply,
+                "sources":      sources,
+                "response_ms":  response_ms,
+            }),
+            timeout=5,
+        )
+    except Exception:
+        pass  # never let logging break the chat
+
 # ── App setup ─────────────────────────────────────────────────────────────────
 app = FastAPI(title="Amit Digital Twin", version="1.0.0")
 
@@ -111,7 +141,17 @@ def chat(req: ChatRequest, request: Request):
     # Convert Pydantic models to plain dicts for rag.chat()
     history = [{"role": m.role, "content": m.content} for m in req.history]
 
+    t0 = time.time()
     result = rag.chat(message=req.message, history=history)
+    response_ms = int((time.time() - t0) * 1000)
+
+    _log_conversation(
+        user_message=req.message,
+        bot_reply=result["reply"],
+        sources=result["sources"],
+        response_ms=response_ms,
+    )
+
     return ChatResponse(reply=result["reply"], sources=result["sources"])
 
 
