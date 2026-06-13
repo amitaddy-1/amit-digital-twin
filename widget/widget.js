@@ -34,10 +34,45 @@
   const CSS = `
     #amit-widget * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
 
-    #amit-bubble {
+    #amit-launcher {
       position: fixed;
       ${POSITION.includes("right") ? "right: 24px;" : "left: 24px;"}
       bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: ${POSITION.includes("right") ? "flex-end" : "flex-start"};
+      gap: 8px;
+      z-index: 99999;
+    }
+
+    #amit-label {
+      background: #1a1a2e;
+      color: #fff;
+      font-size: 12.5px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 20px;
+      white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.22);
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+    }
+    #amit-label::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -60%;
+      width: 40%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+      animation: amit-shimmer 2.4s infinite;
+    }
+    @keyframes amit-shimmer {
+      0%   { left: -60%; }
+      100% { left: 120%; }
+    }
+    #amit-label.hidden { display: none; }
+
+    #amit-bubble {
       width: 56px; height: 56px;
       border-radius: 50%;
       background: #1a1a2e;
@@ -47,15 +82,19 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 22px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-      z-index: 99999;
       transition: transform 0.2s ease;
+      animation: amit-pulse 3s ease-in-out infinite;
     }
-    #amit-bubble:hover { transform: scale(1.08); }
+    #amit-bubble:hover { transform: scale(1.08); animation: none; }
+    @keyframes amit-pulse {
+      0%, 100% { box-shadow: 0 4px 20px rgba(0,0,0,0.25); }
+      50%       { box-shadow: 0 4px 28px rgba(26,26,46,0.55), 0 0 0 6px rgba(26,26,46,0.12); }
+    }
 
     #amit-panel {
       position: fixed;
       ${POSITION.includes("right") ? "right: 24px;" : "left: 24px;"}
-      bottom: 92px;
+      bottom: 100px;
       width: 360px;
       max-height: 520px;
       background: #ffffff;
@@ -159,11 +198,22 @@
     const style = document.createElement("style");
     style.textContent = CSS;
 
+    const launcher = document.createElement("div");
+    launcher.id = "amit-launcher";
+
+    const label = document.createElement("div");
+    label.id = "amit-label";
+    label.textContent = "Speak to Amit's digital twin!";
+    label.onclick = togglePanel;
+
     const bubble = document.createElement("button");
     bubble.id = "amit-bubble";
     bubble.innerHTML = "💬";
     bubble.setAttribute("aria-label", "Chat with digital Amit");
     bubble.onclick = togglePanel;
+
+    launcher.appendChild(label);
+    launcher.appendChild(bubble);
 
     const panel = document.createElement("div");
     panel.id = "amit-panel";
@@ -186,7 +236,7 @@
     `;
 
     container.appendChild(style);
-    container.appendChild(bubble);
+    container.appendChild(launcher);
     container.appendChild(panel);
     document.body.appendChild(container);
 
@@ -211,6 +261,7 @@
     const panel = document.getElementById("amit-panel");
     panel.classList.toggle("open", isOpen);
     document.getElementById("amit-bubble").innerHTML = isOpen ? "✕" : "💬";
+    document.getElementById("amit-label").classList.toggle("hidden", isOpen);
     if (isOpen) document.getElementById("amit-input").focus();
   }
 
