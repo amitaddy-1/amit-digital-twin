@@ -24,9 +24,35 @@ SCORE_THRESHOLD = 0.35    # below this → fallback (no GPT-4o call)
 MAX_HISTORY_TURNS = 6     # last N conversation turns sent to GPT-4o
 
 FALLBACK_REPLY = (
-    "That's a bit outside what I've written about — my world is technology, "
-    "nonlinearity, marketing research, AI, and career growth. "
-    "Happy to explore any of those with you!"
+    "That's a little outside my world — I'm best when we're talking about "
+    "technology, AI, nonlinearity, market research, or the ideas in my book and blog. "
+    "What would you like to explore?"
+)
+
+GREETING_REPLY = (
+    "Hi! Great to meet you. I'm a digital version of Amit Adarkar — "
+    "built from his book 'Nonlinear', his LinkedIn profile, and his blog writing. "
+    "Ask me anything about his work, ideas, or career."
+)
+
+IDENTITY_REPLY = (
+    "I'm not the real Amit — I'm a digital twin, built from his book 'Nonlinear', "
+    "his LinkedIn profile, and his newsletter articles. Think of me as his ideas "
+    "and experiences, available for a conversation. What would you like to know?"
+)
+
+# Patterns that should bypass RAG and return a canned response
+import re as _re
+_GREETING_RE = _re.compile(
+    r"^\s*(hi|hello|hey|howdy|greetings|good\s+(morning|afternoon|evening)|what'?s up|yo)"
+    r"[\s,!.]*(\w+)?[\s!.]*$",
+    _re.IGNORECASE
+)
+_IDENTITY_RE = _re.compile(
+    r"(are you (amit|a (real|human|actual) person|an? (ai|bot|robot))|"
+    r"am i (talking|speaking|chatting) (to|with) (a )?(real|actual|human|amit)|"
+    r"who are you|what are you)",
+    _re.IGNORECASE
 )
 
 
@@ -136,6 +162,12 @@ def chat(message: str, history: list[dict]) -> dict:
     history: list of {"role": "user"|"assistant", "content": str}
               (last MAX_HISTORY_TURNS turns, client-managed)
     """
+    # 0. Short-circuit for greetings and identity questions
+    if _GREETING_RE.match(message):
+        return {"reply": GREETING_REPLY, "sources": []}
+    if _IDENTITY_RE.search(message):
+        return {"reply": IDENTITY_REPLY, "sources": []}
+
     # 1. Retrieve
     chunks = retrieve(message)
 
