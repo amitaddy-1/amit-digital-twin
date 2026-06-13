@@ -10,13 +10,15 @@ Endpoints:
 
 import os
 import subprocess
+import time
+from collections import defaultdict, deque
 from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 load_dotenv()
 
@@ -25,12 +27,35 @@ from backend import rag  # noqa: E402 — import after env loaded
 # ── App setup ─────────────────────────────────────────────────────────────────
 app = FastAPI(title="Amit Digital Twin", version="1.0.0")
 
+# CORS — set ALLOWED_ORIGIN env var to your WordPress domain in production
+# e.g. "https://random-walk.blog"  (leave unset or "*" to allow all)
+_allowed_origin = os.environ.get("ALLOWED_ORIGIN", "*")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # tighten to your WordPress domain after testing
+    allow_origins=[_allowed_origin],
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+# ── Rate limiter (in-memory, per IP) ──────────────────────────────────────────
+RATE_LIMIT_REQUESTS = 10   # max requests per window
+RATE_LIMIT_WINDOW   = 60   # seconds
+
+_rate_buckets: dict[str, deque] = defaultdict(deque)
+
+def _check_rate_limit(ip: str) -> None:
+    """Raise 429 if IP has exceeded RATE_LIMIT_REQUESTS in the last window."""
+    now = time.time()
+    bucket = _rate_buckets[ip]
+    # Drop timestamps outside the window
+    while bucket and now - bucket[0] > RATE_LIMIT_WINDOW:
+        bucket.popleft()
+    if len(bucket) >= RATE_LIMIT_REQUESTS:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many requests — please wait a moment before sending another message.",
+        )
+    bucket.append(now)
 
 
 # ── Request / Response models ─────────────────────────────────────────────────
@@ -40,7 +65,7 @@ class Message(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    message: str
+    message: str = Field(..., min_length=1, max_length=600)
     history: list[Message] = []
 
 
@@ -76,8 +101,10 @@ def health():
 
 
 @app.post("/chat", response_model=ChatResponse)
-def chat(req: ChatRequest):
+def chat(req: ChatRequest, request: Request):
     """Main RAG chat endpoint."""
+    _check_rate_limit(request.client.host)
+
     if not req.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty.")
 
