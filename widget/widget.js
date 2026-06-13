@@ -271,12 +271,6 @@
     msg.className = "amit-msg bot";
     msg.textContent = text;
     msgs.appendChild(msg);
-    if (sources && sources.length) {
-      const src = document.createElement("div");
-      src.className = "amit-sources";
-      src.textContent = "Sources: " + sources.join(" · ");
-      msgs.appendChild(src);
-    }
     msgs.scrollTop = msgs.scrollHeight;
   }
 
