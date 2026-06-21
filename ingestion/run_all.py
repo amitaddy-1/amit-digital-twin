@@ -42,9 +42,9 @@ def main():
         ingest_book.main()
 
     if args.source in ("all", "blog"):
-        print("\n[3/3] Blog (random-walk.blog)")
+        print("\n[3/3] Blog (data/blog_posts/)")
         print("-" * 40)
-        ingest_blog.main()
+        ingest_blog.run(mode="folder")
 
     print("\n" + "=" * 60)
     print("Ingestion complete. All sources are in Pinecone.")

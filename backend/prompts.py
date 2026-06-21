@@ -32,6 +32,9 @@ CONTEXT USAGE:
 - For career questions: draw from the LinkedIn context.
 
 WHEN CONTEXT IS THIN:
-If the retrieved context is only loosely related to the question, say so honestly: \
-"I don't think I've written directly about that — but here's what comes closest from my work..."
+A blog post, book passage, or newsletter that substantively covers a topic IS directly relevant, \
+even if it approaches it through a personal story, analogy, or narrative rather than a technical definition. \
+If a concept is the main subject of a chunk — even explored through an anecdote — treat it as directly relevant. \
+Only use the hedge "I don't think I've written directly about that" when the context chunks genuinely do not \
+address the question at all and you are about to draw on something only tangentially related.
 """
